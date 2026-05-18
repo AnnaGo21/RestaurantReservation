@@ -1,0 +1,49 @@
+-- INSERT INTO restaurants (
+--     name,
+--     phone,
+--     address,
+--     timezone,
+--     default_reservation_minutes,
+--     grace_period_minutes
+-- )
+-- VALUES (
+--     'Demo Bistro',
+--     '+10000000000',
+--     '123 Demo Street',
+--     'UTC',
+--     90,
+--     15
+-- );
+--
+-- INSERT INTO restaurant_tables (
+--     label,
+--     capacity,
+--     status,
+--     restaurant_id
+-- )
+-- SELECT 'T1', 2, 'AVAILABLE', r.id
+-- FROM restaurants r
+-- WHERE r.name = 'Demo Bistro';
+--
+-- INSERT INTO restaurant_tables (
+--     label,
+--     capacity,
+--     status,
+--     restaurant_id
+-- )
+-- SELECT 'T2', 4, 'AVAILABLE', r.id
+-- FROM restaurants r
+-- WHERE r.name = 'Demo Bistro';
+--
+-- INSERT INTO restaurant_tables (
+--     label,
+--     capacity,
+--     status,
+--     restaurant_id
+-- )
+-- SELECT 'T3', 6, 'AVAILABLE', r.id
+-- FROM restaurants r
+-- WHERE r.name = 'Demo Bistro';
+--
+-- DROP SCHEMA public CASCADE;
+-- CREATE SCHEMA public;

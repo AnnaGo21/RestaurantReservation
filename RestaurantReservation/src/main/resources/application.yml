@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: restaurant-reservations
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/restaurant_reservations
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      connection-timeout: 30000
+      initialization-fail-timeout: 0
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.CamelCaseToUnderscoresNamingStrategy
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:replace-this-with-a-long-secure-secret-key}
+    expiration-ms: 86400000
+
+  reservation:
+    default-slot-minutes: 90
+    grace-period-minutes: 15
+
+sms:
+  enabled: ${SMS_ENABLED:false}
+  mock-mode: ${SMS_MOCK_MODE:true}
+
+twilio:
+  account-sid: ${TWILIO_ACCOUNT_SID:}
+  auth-token: ${TWILIO_AUTH_TOKEN:}
+  from-number: ${TWILIO_FROM_NUMBER:}

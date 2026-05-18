@@ -1,0 +1,9 @@
+To enable Twilio
+Local dev (mock): SMS_ENABLED=true
+SMS_MOCK_MODE=true (default)
+
+Production: SMS_ENABLED=true
+SMS_MOCK_MODE=false
+TWILIO_ACCOUNT_SID=xxx
+TWILIO_AUTH_TOKEN=xxx
+TWILIO_FROM_NUMBER=+xxx
