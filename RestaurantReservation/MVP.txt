@@ -1,0 +1,523 @@
+Restaurant Reservation & Analytics Platform — Full Business Logic & Product Specification
+PROJECT OVERVIEW
+
+Build a lightweight SaaS platform for restaurants, cafes, and bars in Georgia focused on reservation operations, no-show reduction, table organization, and restaurant analytics.
+
+This platform is NOT:
+
+a POS system
+an inventory system
+an accounting platform
+a food delivery platform
+a public reservation marketplace initially
+
+The system is an INTERNAL OPERATIONAL TOOL for restaurants.
+
+Restaurants manually enter reservation data received from:
+
+phone calls
+Instagram/Facebook messages
+WhatsApp
+existing reservation websites
+walk-ins
+
+The goal is to simplify reservation operations and provide valuable analytics that restaurants currently lack.
+
+CORE BUSINESS PROBLEM
+
+Restaurants in Georgia often manage reservations through:
+
+notebooks
+phone calls
+WhatsApp
+memory
+Excel spreadsheets
+
+This creates:
+
+double bookings
+table confusion
+no-show losses
+poor organization
+lack of operational insights
+staff conflicts
+inability to analyze peak hours and traffic
+
+Existing systems like Fina focus mainly on POS, inventory, and accounting, while reservation management is secondary and often inconvenient.
+
+This platform focuses specifically on:
+
+reservation workflow
+operational simplicity
+table management
+analytics
+no-show protection
+BUSINESS MODEL
+Monthly SaaS Subscription
+Starter Plan
+
+50–100 GEL/month
+For small cafes
+
+Standard Plan
+
+150–300 GEL/month
+For restaurants with larger reservation volume
+
+Premium Plan
+
+400+ GEL/month
+Advanced analytics and future integrations
+
+PRODUCT PHASES
+PHASE 1 — INTERNAL RESERVATION SYSTEM
+
+This is the MVP.
+
+NO PUBLIC USER BOOKING.
+
+Restaurants manually enter reservations themselves.
+
+PHASE 2 — RESTAURANT DISCOVERY PLATFORM
+
+After acquiring enough restaurants:
+
+public restaurant pages
+restaurant discovery
+search/filter system
+maps
+reviews aggregation
+availability display
+
+Still optional public booking.
+
+PHASE 3 — PUBLIC BOOKING PLATFORM
+
+Only after operational stability:
+
+public reservations
+booking engine
+customer accounts
+loyalty
+promotions
+reservation commissions
+TARGET USERS
+Primary Users
+restaurant owners
+restaurant managers
+reservation managers
+front desk staff
+hosts/hostesses
+Secondary Users (future)
+customers looking for restaurants
+CORE MVP FEATURES
+1. AUTHENTICATION SYSTEM
+Requirements
+secure JWT authentication
+role-based access control
+multiple users per restaurant
+Roles
+OWNER
+
+Full access:
+
+analytics
+reservations
+settings
+users
+MANAGER
+
+Access:
+
+reservations
+analytics
+tables
+STAFF
+
+Access:
+
+reservation operations only
+2. RESTAURANT PROFILE MANAGEMENT
+
+Each restaurant must have:
+
+name
+address
+contact information
+cuisine type
+opening hours
+logo
+timezone
+
+Opening hours should support:
+
+different schedules by weekday
+closed days
+holiday overrides later
+3. TABLE MANAGEMENT SYSTEM
+
+Restaurants must be able to:
+
+create tables
+assign capacities
+disable tables temporarily
+arrange simple floor layout
+
+Each table includes:
+
+table name/number
+seating capacity
+active/inactive status
+optional position coordinates
+
+The system must support:
+
+merging tables later
+large group handling later
+4. RESERVATION MANAGEMENT SYSTEM
+
+This is the CORE MODULE.
+
+Restaurants manually enter reservations.
+
+Reservation creation flow
+
+Staff enters:
+
+guest name
+phone number
+reservation date
+reservation time
+party size
+optional notes
+
+System automatically:
+
+checks available tables
+prevents overlaps
+validates capacity
+suggests best matching table
+5. TABLE AVAILABILITY ENGINE
+
+MOST IMPORTANT BUSINESS LOGIC.
+
+The system must:
+
+detect overlapping reservations
+block double booking
+calculate reservation duration
+determine free tables
+
+Default reservation duration:
+90 minutes
+
+Example:
+If reservation starts at 19:00 and lasts 90 minutes:
+table unavailable until 20:30
+
+Availability logic must consider:
+
+reservation status
+cancelled reservations
+no-shows
+completed reservations
+6. RESERVATION STATUSES
+
+Statuses:
+
+PENDING
+CONFIRMED
+CANCELLED
+COMPLETED
+NO_SHOW
+
+Status transitions:
+
+PENDING → CONFIRMED
+CONFIRMED → COMPLETED
+CONFIRMED → NO_SHOW
+any → CANCELLED
+7. NO-SHOW PROTECTION SYSTEM
+
+One of the key business values.
+
+The platform must:
+
+track no-shows
+send reminders
+identify repeat offenders later
+
+Rules:
+If guest does not arrive within configurable grace period:
+reservation automatically becomes NO_SHOW
+
+Default grace period:
+15 minutes
+
+System tracks:
+
+total no-show count
+no-show percentage
+repeat no-show guests
+8. SMS REMINDER SYSTEM
+
+Integration:
+
+Twilio or local Georgian SMS provider later
+
+Messages:
+
+reservation confirmation
+reminder before reservation
+
+Reminder timing:
+
+24 hours before
+optionally 2 hours before later
+
+SMS templates configurable later.
+
+9. DASHBOARD SYSTEM
+
+Dashboard should provide:
+
+today's reservations
+upcoming reservations
+occupied tables
+free tables
+no-show percentage
+busiest hours
+total reservations
+
+Dashboard must load quickly and work well on tablets.
+
+10. ANALYTICS SYSTEM
+
+Restaurants currently lack actionable analytics.
+
+The system must provide:
+
+Peak Hours
+
+Most popular reservation hours
+
+Busiest Days
+
+Traffic by weekday
+
+Average Group Size
+
+Average party size
+
+No-show Percentage
+
+No-show ratio
+
+Reservation Trends
+
+Daily/weekly/monthly reservations
+
+Future Analytics
+staff recommendations
+demand forecasting
+occupancy forecasting
+11. GUEST MANAGEMENT SYSTEM
+
+The system stores guest history:
+
+previous visits
+no-show history
+notes
+preferences later
+
+Guest lookup by:
+
+phone number
+name
+
+The goal:
+restaurant recognizes repeat customers.
+
+12. CALENDAR VIEW
+
+The platform must provide:
+
+daily calendar
+weekly calendar
+
+Features:
+
+visual table occupancy
+drag-and-drop later
+color-coded statuses
+
+The calendar is one of the most frequently used screens.
+
+Must be:
+
+fast
+responsive
+minimal
+13. USER EXPERIENCE REQUIREMENTS
+
+The system must prioritize:
+
+speed
+simplicity
+minimal clicks
+
+Restaurant staff operate under pressure during busy hours.
+
+Reservation creation should take:
+less than 15–20 seconds.
+
+14. FRONTEND REQUIREMENTS
+
+Frontend stack:
+
+React
+TypeScript
+TailwindCSS
+
+Pages:
+
+Login
+Dashboard
+Reservations
+Calendar
+Tables
+Guests
+Analytics
+Settings
+
+Responsive design:
+
+desktop
+tablet
+mobile basic support
+15. BACKEND REQUIREMENTS
+
+Backend stack:
+
+Java 17
+Spring Boot 3
+Spring Security
+JWT
+PostgreSQL
+Flyway
+
+Architecture:
+
+layered monolith
+controller/service/repository
+DTO pattern
+global exception handling
+
+DO NOT use:
+
+microservices
+Kafka
+Redis initially
+event sourcing
+GraphQL
+
+Keep architecture simple.
+
+16. DATABASE REQUIREMENTS
+
+Core entities:
+
+Restaurant
+User
+RestaurantTable
+Guest
+Reservation
+Analytics
+
+Relationships:
+
+Restaurant has many users
+Restaurant has many tables
+Restaurant has many reservations
+Guest has many reservations
+
+Indexes required:
+
+reservation date/time
+phone number
+restaurant id
+17. SECURITY REQUIREMENTS
+
+Authentication:
+
+JWT
+BCrypt password hashing
+
+Authorization:
+
+role-based permissions
+
+Security rules:
+
+restaurant data isolation
+users access only their restaurant data
+18. DEPLOYMENT REQUIREMENTS
+
+Deployment:
+
+Docker
+Docker Compose
+PostgreSQL container
+Nginx reverse proxy later
+
+Hosting:
+
+DigitalOcean
+Hetzner
+AWS later
+19. FUTURE ROADMAP
+
+Future features:
+
+public restaurant discovery
+customer-facing reservations
+Google Maps integration
+reviews
+restaurant promotions
+Fina/POS integrations
+AI forecasting
+mobile apps
+
+These are NOT MVP features.
+
+20. MOST IMPORTANT BUSINESS PRINCIPLES
+
+The platform must:
+
+solve real operational pain
+reduce reservation chaos
+improve organization
+provide useful analytics
+remain extremely simple
+
+The product should feel:
+
+faster than notebooks
+simpler than Fina
+easier than Excel
+21. MAIN SUCCESS METRIC
+
+The platform is successful if:
+
+restaurants use it daily
+reservations are consistently entered
+owners check analytics regularly
+restaurants continue paying monthly
+onboarding new restaurants becomes easier over time
+22. FINAL PRODUCT POSITIONING
+
+This is NOT:
+"another POS system"
+
+This IS:
+"The easiest restaurant reservation and operational insights platform for Georgia."
