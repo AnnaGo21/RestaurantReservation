@@ -3,11 +3,13 @@ package org.example.reservations.dashboard;
 import lombok.RequiredArgsConstructor;
 import org.example.reservations.reservation.Reservation;
 import org.example.reservations.reservation.ReservationDto;
+import org.example.reservations.reservation.ReservationMapper;
 import org.example.reservations.reservation.ReservationRepository;
 import org.example.reservations.reservation.ReservationStatus;
 import org.example.reservations.table.RestaurantTable;
 import org.example.reservations.table.RestaurantTableRepository;
 import org.example.reservations.table.TableDto;
+import org.example.reservations.table.TableMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,8 @@ public class DashboardService {
 
     private final ReservationRepository reservationRepository;
     private final RestaurantTableRepository tableRepository;
+    private final ReservationMapper reservationMapper;
+    private final TableMapper tableMapper;
 
     @Transactional(readOnly = true)
     public DashboardDto getDashboardData(Long restaurantId) {
@@ -30,16 +34,21 @@ public class DashboardService {
         LocalDateTime todayEnd = LocalDate.now().atTime(LocalTime.MAX);
         LocalDateTime now = LocalDateTime.now();
 
+        // All reservations for today regardless of status — full picture for staff
         List<Reservation> todayReservations = reservationRepository
                 .findByRestaurantIdAndStartTimeBetween(restaurantId, todayStart, todayEnd);
 
         List<ReservationDto> todayReservationDtos = todayReservations.stream()
-                .map(this::toReservationDto)
+                .map(reservationMapper::toDto)
                 .collect(Collectors.toList());
 
+        // Subset of today's reservations that are still upcoming and active (not cancelled/no-show/completed)
         List<ReservationDto> upcomingReservations = todayReservations.stream()
                 .filter(r -> r.getStartTime().isAfter(now))
-                .map(this::toReservationDto)
+                .filter(r -> r.getStatus() != ReservationStatus.CANCELLED
+                        && r.getStatus() != ReservationStatus.NO_SHOW
+                        && r.getStatus() != ReservationStatus.COMPLETED)
+                .map(reservationMapper::toDto)
                 .collect(Collectors.toList());
 
         List<Long> occupiedTableIds = todayReservations.stream()
@@ -48,18 +57,18 @@ public class DashboardService {
                         && r.getStatus() != ReservationStatus.NO_SHOW)
                 .filter(r -> r.getStartTime().isBefore(now) && r.getEndTime().isAfter(now))
                 .map(r -> r.getRestaurantTable().getId())
-                .collect(Collectors.toList());
+                .toList();
 
         List<RestaurantTable> allTables = tableRepository.findByRestaurantId(restaurantId);
 
         List<TableDto> occupiedTables = allTables.stream()
                 .filter(t -> occupiedTableIds.contains(t.getId()))
-                .map(this::toTableDto)
+                .map(tableMapper::toDto)
                 .collect(Collectors.toList());
 
         List<TableDto> freeTables = allTables.stream()
                 .filter(t -> !occupiedTableIds.contains(t.getId()))
-                .map(this::toTableDto)
+                .map(tableMapper::toDto)
                 .collect(Collectors.toList());
 
         long totalReservations = reservationRepository.countByRestaurantId(restaurantId);
@@ -76,36 +85,6 @@ public class DashboardService {
                 freeTables,
                 noShowPercentage,
                 todayReservations.size()
-        );
-    }
-
-    private ReservationDto toReservationDto(Reservation reservation) {
-        return new ReservationDto(
-                reservation.getId(),
-                reservation.getRestaurant().getId(),
-                reservation.getRestaurantTable().getId(),
-                reservation.getGuest().getId(),
-                reservation.getGuest().getFullName(),
-                reservation.getGuest().getPhone(),
-                reservation.getStartTime(),
-                reservation.getEndTime(),
-                reservation.getPartySize(),
-                reservation.getNotes(),
-                reservation.getStatus(),
-                reservation.getReminderSent(),
-                reservation.getCheckedInAt()
-        );
-    }
-
-    private TableDto toTableDto(RestaurantTable table) {
-        return new TableDto(
-                table.getId(),
-                table.getLabel(),
-                table.getCapacity(),
-                table.getStatus(),
-                table.getPositionX(),
-                table.getPositionY(),
-                table.getRestaurant().getId()
         );
     }
 }

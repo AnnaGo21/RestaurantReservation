@@ -16,11 +16,12 @@ public class TableService {
 
     private final RestaurantTableRepository tableRepository;
     private final RestaurantRepository restaurantRepository;
+    private final TableMapper tableMapper;
 
     @Transactional(readOnly = true)
     public List<TableDto> getTablesByRestaurantId(Long restaurantId) {
         return tableRepository.findByRestaurantId(restaurantId).stream()
-                .map(this::toDto)
+                .map(tableMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -28,7 +29,7 @@ public class TableService {
     public TableDto getTableById(Long id) {
         RestaurantTable table = tableRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Table not found with id: " + id));
-        return toDto(table);
+        return tableMapper.toDto(table);
     }
 
     @Transactional
@@ -45,7 +46,7 @@ public class TableService {
         table.setRestaurant(restaurant);
 
         table = tableRepository.save(table);
-        return toDto(table);
+        return tableMapper.toDto(table);
     }
 
     @Transactional
@@ -60,7 +61,7 @@ public class TableService {
         table.setPositionY(dto.getPositionY());
 
         table = tableRepository.save(table);
-        return toDto(table);
+        return tableMapper.toDto(table);
     }
 
     @Transactional
@@ -69,17 +70,5 @@ public class TableService {
             throw new ResourceNotFoundException("Table not found with id: " + id);
         }
         tableRepository.deleteById(id);
-    }
-
-    private TableDto toDto(RestaurantTable table) {
-        return new TableDto(
-                table.getId(),
-                table.getLabel(),
-                table.getCapacity(),
-                table.getStatus(),
-                table.getPositionX(),
-                table.getPositionY(),
-                table.getRestaurant().getId()
-        );
     }
 }

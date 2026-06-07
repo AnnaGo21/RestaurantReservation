@@ -26,4 +26,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     long countByRestaurantId(Long restaurantId);
 
     long countByRestaurantIdAndStatus(Long restaurantId, ReservationStatus status);
+
+    // Used by SmsReminderScheduler: CONFIRMED reservations starting between `from` and `until` with no reminder sent yet
+    List<Reservation> findByStatusAndReminderSentFalseAndStartTimeBetween(
+            ReservationStatus status, LocalDateTime from, LocalDateTime until);
 }
