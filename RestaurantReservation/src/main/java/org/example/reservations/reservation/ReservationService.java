@@ -27,11 +27,12 @@ public class ReservationService {
     private final RestaurantTableRepository tableRepository;
     private final GuestRepository guestRepository;
     private final SmsService smsService;
+    private final ReservationMapper reservationMapper;
 
     @Transactional(readOnly = true)
     public List<ReservationDto> getAllReservationsByRestaurant(Long restaurantId, LocalDateTime start, LocalDateTime end) {
         return reservationRepository.findByRestaurantIdAndStartTimeBetween(restaurantId, start, end).stream()
-                .map(this::toDto)
+                .map(reservationMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -39,7 +40,7 @@ public class ReservationService {
     public ReservationDto getReservationById(Long id) {
         Reservation reservation = reservationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Reservation not found with id: " + id));
-        return toDto(reservation);
+        return reservationMapper.toDto(reservation);
     }
 
     @Transactional
@@ -100,7 +101,6 @@ public class ReservationService {
 
         reservation = reservationRepository.save(reservation);
 
-        // Send confirmation SMS
         String formattedDateTime = reservation.getStartTime()
                 .format(DateTimeFormatter.ofPattern("MMM dd 'at' HH:mm"));
         smsService.sendConfirmation(
@@ -110,7 +110,7 @@ public class ReservationService {
                 formattedDateTime
         );
 
-        return toDto(reservation);
+        return reservationMapper.toDto(reservation);
     }
 
     @Transactional
@@ -131,7 +131,7 @@ public class ReservationService {
         }
 
         reservation = reservationRepository.save(reservation);
-        return toDto(reservation);
+        return reservationMapper.toDto(reservation);
     }
 
     @Transactional
@@ -141,7 +141,7 @@ public class ReservationService {
 
         reservation.setStatus(ReservationStatus.CANCELLED);
         reservation = reservationRepository.save(reservation);
-        return toDto(reservation);
+        return reservationMapper.toDto(reservation);
     }
 
     @Transactional(readOnly = true)
@@ -149,33 +149,15 @@ public class ReservationService {
         List<RestaurantTable> allTables = tableRepository.findByRestaurantId(restaurantId);
 
         return allTables.stream()
-                .filter(table -> {
+                .map(RestaurantTable::getId)
+                .filter(id -> {
                     List<Reservation> conflicts = reservationRepository.findConflicts(
-                            table.getId(),
+                            id,
                             startTime,
                             endTime
                     );
                     return conflicts.isEmpty();
                 })
-                .map(RestaurantTable::getId)
                 .collect(Collectors.toList());
-    }
-
-    private ReservationDto toDto(Reservation reservation) {
-        return new ReservationDto(
-                reservation.getId(),
-                reservation.getRestaurant().getId(),
-                reservation.getRestaurantTable().getId(),
-                reservation.getGuest().getId(),
-                reservation.getGuest().getFullName(),
-                reservation.getGuest().getPhone(),
-                reservation.getStartTime(),
-                reservation.getEndTime(),
-                reservation.getPartySize(),
-                reservation.getNotes(),
-                reservation.getStatus(),
-                reservation.getReminderSent(),
-                reservation.getCheckedInAt()
-        );
     }
 }

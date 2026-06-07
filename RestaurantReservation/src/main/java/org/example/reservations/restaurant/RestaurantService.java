@@ -13,11 +13,12 @@ import java.util.stream.Collectors;
 public class RestaurantService {
 
     private final RestaurantRepository restaurantRepository;
+    private final RestaurantMapper restaurantMapper;
 
     @Transactional(readOnly = true)
     public List<RestaurantDto> getAllRestaurants() {
         return restaurantRepository.findAll().stream()
-                .map(this::toDto)
+                .map(restaurantMapper::toDto)
                 .collect(Collectors.toList());
     }
 
@@ -25,7 +26,7 @@ public class RestaurantService {
     public RestaurantDto getRestaurantById(Long id) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Restaurant not found with id: " + id));
-        return toDto(restaurant);
+        return restaurantMapper.toDto(restaurant);
     }
 
     @Transactional
@@ -42,7 +43,7 @@ public class RestaurantService {
         restaurant.setGracePeriodMinutes(dto.getGracePeriodMinutes() != null ? dto.getGracePeriodMinutes() : 15);
 
         restaurant = restaurantRepository.save(restaurant);
-        return toDto(restaurant);
+        return restaurantMapper.toDto(restaurant);
     }
 
     @Transactional
@@ -61,7 +62,7 @@ public class RestaurantService {
         restaurant.setGracePeriodMinutes(dto.getGracePeriodMinutes());
 
         restaurant = restaurantRepository.save(restaurant);
-        return toDto(restaurant);
+        return restaurantMapper.toDto(restaurant);
     }
 
     @Transactional
@@ -70,20 +71,5 @@ public class RestaurantService {
             throw new ResourceNotFoundException("Restaurant not found with id: " + id);
         }
         restaurantRepository.deleteById(id);
-    }
-
-    private RestaurantDto toDto(Restaurant restaurant) {
-        return new RestaurantDto(
-                restaurant.getId(),
-                restaurant.getName(),
-                restaurant.getPhone(),
-                restaurant.getAddress(),
-                restaurant.getCuisineType(),
-                restaurant.getOpeningHours(),
-                restaurant.getLogoUrl(),
-                restaurant.getTimezone(),
-                restaurant.getDefaultReservationMinutes(),
-                restaurant.getGracePeriodMinutes()
-        );
     }
 }

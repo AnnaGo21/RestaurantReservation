@@ -34,15 +34,14 @@ public class SmsReminderScheduler {
     @Transactional
     public void sendReminders() {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime in24Hours = now.plusHours(24);
-        LocalDateTime in23Hours = now.plusHours(23);
+        // Send reminders for any CONFIRMED reservation starting in the next 1–24 hours
+        // that hasn't been reminded yet. The 1-hour minimum ensures the guest still has
+        // time to act on the reminder. The reminderSent flag prevents duplicate sends.
+        LocalDateTime from = now.plusHours(1);
+        LocalDateTime until = now.plusHours(24);
 
-        // Find reservations happening in 23-24 hours that haven't received reminders
-        List<Reservation> upcomingReservations = reservationRepository.findAll().stream()
-                .filter(r -> r.getStatus() == ReservationStatus.CONFIRMED)
-                .filter(r -> !r.getReminderSent())
-                .filter(r -> r.getStartTime().isAfter(in23Hours) && r.getStartTime().isBefore(in24Hours))
-                .toList();
+        List<Reservation> upcomingReservations = reservationRepository
+                .findByStatusAndReminderSentFalseAndStartTimeBetween(ReservationStatus.CONFIRMED, from, until);
 
         log.info("Found {} reservations needing reminders", upcomingReservations.size());
 

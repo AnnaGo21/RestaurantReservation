@@ -17,26 +17,27 @@ public class GuestService {
 
     private final GuestRepository guestRepository;
     private final RestaurantRepository restaurantRepository;
+    private final GuestMapper guestMapper;
 
     @Transactional(readOnly = true)
     public List<GuestDto> getGuestsByRestaurantId(Long restaurantId) {
         List<Guest> guests = guestRepository.findAll().stream()
                 .filter(g -> g.getRestaurant().getId().equals(restaurantId))
-                .collect(Collectors.toList());
-        return guests.stream().map(this::toDto).collect(Collectors.toList());
+                .toList();
+        return guests.stream().map(guestMapper::toDto).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public GuestDto getGuestById(Long id) {
         Guest guest = guestRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + id));
-        return toDto(guest);
+        return guestMapper.toDto(guest);
     }
 
     @Transactional(readOnly = true)
     public Optional<GuestDto> findByRestaurantAndPhone(Long restaurantId, String phone) {
         return guestRepository.findByRestaurantIdAndPhone(restaurantId, phone)
-                .map(this::toDto);
+                .map(guestMapper::toDto);
     }
 
     @Transactional
@@ -58,7 +59,7 @@ public class GuestService {
         guest.setNoShowCount(0);
 
         guest = guestRepository.save(guest);
-        return toDto(guest);
+        return guestMapper.toDto(guest);
     }
 
     @Transactional
@@ -71,7 +72,7 @@ public class GuestService {
         guest.setEmail(dto.getEmail());
 
         guest = guestRepository.save(guest);
-        return toDto(guest);
+        return guestMapper.toDto(guest);
     }
 
     @Transactional
@@ -96,17 +97,5 @@ public class GuestService {
                 .orElseThrow(() -> new ResourceNotFoundException("Guest not found with id: " + guestId));
         guest.setNoShowCount(guest.getNoShowCount() + 1);
         guestRepository.save(guest);
-    }
-
-    private GuestDto toDto(Guest guest) {
-        return new GuestDto(
-                guest.getId(),
-                guest.getFullName(),
-                guest.getPhone(),
-                guest.getEmail(),
-                guest.getTotalVisits(),
-                guest.getNoShowCount(),
-                guest.getRestaurant().getId()
-        );
     }
 }
