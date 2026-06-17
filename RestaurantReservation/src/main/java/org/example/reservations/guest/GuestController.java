@@ -2,6 +2,7 @@ package org.example.reservations.guest;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.reservations.auth.SecurityUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,8 +15,8 @@ public class GuestController {
     private final GuestService guestService;
 
     @GetMapping
-    public List<GuestDto> getGuestsByRestaurant(@RequestParam Long restaurantId) {
-        return guestService.getGuestsByRestaurantId(restaurantId);
+    public List<GuestDto> getGuestsByRestaurant() {
+        return guestService.getGuestsByRestaurantId(SecurityUtils.currentRestaurantId());
     }
 
     @GetMapping("/{id}")
@@ -24,8 +25,8 @@ public class GuestController {
     }
 
     @GetMapping("/search")
-    public GuestDto findByPhone(@RequestParam Long restaurantId, @RequestParam String phone) {
-        return guestService.findByRestaurantAndPhone(restaurantId, phone)
+    public GuestDto findByPhone(@RequestParam String phone) {
+        return guestService.findByRestaurantAndPhone(SecurityUtils.currentRestaurantId(), phone)
                 .orElseThrow(() -> new IllegalArgumentException("Guest not found with phone: " + phone));
     }
 

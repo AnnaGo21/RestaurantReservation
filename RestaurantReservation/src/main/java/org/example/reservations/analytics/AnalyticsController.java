@@ -1,6 +1,7 @@
 package org.example.reservations.analytics;
 
 import lombok.RequiredArgsConstructor;
+import org.example.reservations.auth.SecurityUtils;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,12 +17,11 @@ public class AnalyticsController {
 
     @GetMapping
     public AnalyticsResponse getAnalytics(
-            @RequestParam Long restaurantId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) {
         return analyticsService.getAnalytics(
-                restaurantId,
+                SecurityUtils.currentRestaurantId(),
                 start.atStartOfDay(),
                 end.atTime(LocalTime.MAX)
         );

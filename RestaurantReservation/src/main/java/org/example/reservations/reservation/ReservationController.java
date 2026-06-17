@@ -2,6 +2,7 @@ package org.example.reservations.reservation;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.reservations.auth.SecurityUtils;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,11 +30,10 @@ public class ReservationController {
 
     @GetMapping("/daily")
     public List<ReservationDto> getDailyReservations(
-            @RequestParam Long restaurantId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
         return reservationService.getAllReservationsByRestaurant(
-                restaurantId,
+                SecurityUtils.currentRestaurantId(),
                 date.atStartOfDay(),
                 date.atTime(LocalTime.MAX)
         );
@@ -41,11 +41,10 @@ public class ReservationController {
 
     @GetMapping("/weekly")
     public List<ReservationDto> getWeeklyReservations(
-            @RequestParam Long restaurantId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart
     ) {
         return reservationService.getAllReservationsByRestaurant(
-                restaurantId,
+                SecurityUtils.currentRestaurantId(),
                 weekStart.atStartOfDay(),
                 weekStart.plusDays(7).atStartOfDay()
         );
@@ -53,11 +52,10 @@ public class ReservationController {
 
     @GetMapping("/available-tables")
     public List<Long> getAvailableTables(
-            @RequestParam Long restaurantId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime
     ) {
-        return reservationService.getAvailableTables(restaurantId, startTime, endTime);
+        return reservationService.getAvailableTables(SecurityUtils.currentRestaurantId(), startTime, endTime);
     }
 
     @PatchMapping("/{id}/status")
@@ -68,5 +66,23 @@ public class ReservationController {
     @PatchMapping("/{id}/cancel")
     public ReservationDto cancelReservation(@PathVariable Long id) {
         return reservationService.cancelReservation(id);
+    }
+
+    @PostMapping("/walk-in")
+    public ReservationDto createWalkIn(@Valid @RequestBody WalkInRequest request) {
+        return reservationService.createWalkIn(request);
+    }
+
+    @PatchMapping("/{id}/move")
+    public ReservationDto moveReservation(
+            @PathVariable Long id,
+            @RequestBody MoveReservationRequest request
+    ) {
+        return reservationService.moveReservation(id, request);
+    }
+
+    @PatchMapping("/{id}/check-in")
+    public ReservationDto checkIn(@PathVariable Long id) {
+        return reservationService.checkIn(id);
     }
 }
