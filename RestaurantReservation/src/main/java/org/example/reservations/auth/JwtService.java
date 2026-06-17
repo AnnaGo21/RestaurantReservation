@@ -29,29 +29,26 @@ public class JwtService {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(user.getEmail())
                 .claim("role", user.getRole().name())
                 .issuedAt(now)
                 .expiration(expiry)
-                .signWith(key)
-                .compact();
-    }
+                .signWith(key);
 
-    public String generateToken(String email) {
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + expirationMs);
-
-        return Jwts.builder()
-                .subject(email)
-                .issuedAt(now)
-                .expiration(expiry)
-                .signWith(key)
-                .compact();
+        if (user.getRestaurant() != null) {
+            builder.claim("restaurantId", user.getRestaurant().getId());
+        }
+        return builder.compact();
     }
 
     public String extractEmail(String token) {
         return extractClaims(token).getSubject();
+    }
+
+    public Long extractRestaurantId(String token) {
+        Object v = extractClaims(token).get("restaurantId");
+        return v == null ? null : ((Number) v).longValue();
     }
 
     public Claims extractClaims(String token) {

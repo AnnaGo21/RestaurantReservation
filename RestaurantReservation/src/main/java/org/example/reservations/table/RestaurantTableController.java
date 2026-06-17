@@ -2,6 +2,7 @@ package org.example.reservations.table;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.example.reservations.auth.SecurityUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,8 +15,8 @@ public class RestaurantTableController {
     private final TableService tableService;
 
     @GetMapping
-    public List<TableDto> getTablesByRestaurant(@RequestParam Long restaurantId) {
-        return tableService.getTablesByRestaurantId(restaurantId);
+    public List<TableDto> getTablesByRestaurant() {
+        return tableService.getTablesByRestaurantId(SecurityUtils.currentRestaurantId());
     }
 
     @GetMapping("/{id}")
