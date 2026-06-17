@@ -34,6 +34,9 @@ public class NoShowScheduler {
                 .toList();
 
         for (Reservation reservation : activeReservations) {
+            if (!reservation.getStatus().canTransitionTo(ReservationStatus.NO_SHOW)) {
+                continue;
+            }
             reservation.setStatus(ReservationStatus.NO_SHOW);
 
             var guest = reservation.getGuest();
