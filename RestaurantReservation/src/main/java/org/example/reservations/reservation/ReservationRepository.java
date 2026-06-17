@@ -17,6 +17,16 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     """)
     List<Reservation> findConflicts(Long tableId, LocalDateTime startTime, LocalDateTime endTime);
 
+    @Query("""
+        select r from Reservation r
+        where r.restaurantTable.id = :tableId
+          and r.id <> :excludeId
+          and r.status not in ('CANCELLED', 'NO_SHOW', 'COMPLETED')
+          and r.startTime < :endTime
+          and r.endTime > :startTime
+    """)
+    List<Reservation> findConflictsExcluding(Long tableId, LocalDateTime startTime, LocalDateTime endTime, Long excludeId);
+
     List<Reservation> findByRestaurantIdAndStartTimeBetween(
             Long restaurantId,
             LocalDateTime start,
