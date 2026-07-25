@@ -1,12 +1,19 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { CalendarX, Plus, SearchX } from 'lucide-react'
+import { DateNav } from '@/components/shared/DateNav'
+import { EmptyState } from '@/components/shared/EmptyState'
+import { ErrorState } from '@/components/shared/ErrorState'
+import { FilterBar } from '@/components/shared/FilterBar'
+import { ListSkeleton } from '@/components/shared/ListSkeleton'
+import { PageHeader } from '@/components/shared/PageHeader'
+import { SearchInput } from '@/components/shared/SearchInput'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { Spinner } from '@/components/ui/spinner'
-import { formatDateLabel, formatTime, shiftIsoDate, todayIsoDate } from '@/lib/datetime'
+import { formatTime, todayIsoDate } from '@/lib/datetime'
 import { strings } from '@/lib/strings'
 import { useTables } from '@/features/tables/use-tables'
 import { ALL_RESERVATION_STATUSES, type Reservation } from '@/types/reservation'
@@ -63,45 +70,26 @@ export function ReservationsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">{strings.nav.reservations}</h1>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            aria-label={strings.common.previousDay}
-            onClick={() => setDate(shiftIsoDate(date, -1))}
-          >
-            ‹
-          </Button>
-          <span className="min-w-40 text-center text-sm font-medium text-slate-700">
-            {formatDateLabel(date)}
-          </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            aria-label={strings.common.nextDay}
-            onClick={() => setDate(shiftIsoDate(date, 1))}
-          >
-            ›
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => setDate(todayIsoDate())}>
-            {strings.common.today}
-          </Button>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            {strings.reservations.newButton}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={strings.nav.reservations}
+        actions={
+          <>
+            <DateNav date={date} onChange={setDate} />
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="size-4" />
+              {strings.reservations.newButton}
+            </Button>
+          </>
+        }
+      />
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <div className="w-40">
-          <Input
-            type="date"
-            value={date}
-            onChange={(event) => event.target.value && setDate(event.target.value)}
-          />
-        </div>
+      <FilterBar>
+        <Input
+          type="date"
+          className="w-40"
+          value={date}
+          onChange={(event) => event.target.value && setDate(event.target.value)}
+        />
         <Select
           value={statusFilter ?? ''}
           onChange={(event) => setParam('status', event.target.value)}
@@ -113,48 +101,31 @@ export function ReservationsPage() {
             </option>
           ))}
         </Select>
-        <div className="min-w-48 flex-1 sm:max-w-64">
-          <Input
-            value={query}
-            placeholder={strings.reservations.searchPlaceholder}
-            onChange={(event) => setParam('q', event.target.value)}
-          />
-        </div>
-      </div>
+        <SearchInput
+          className="min-w-48 flex-1 sm:max-w-64"
+          value={query}
+          placeholder={strings.reservations.searchPlaceholder}
+          onChange={(event) => setParam('q', event.target.value)}
+          onClear={() => setParam('q', '')}
+        />
+      </FilterBar>
 
-      {isPending && (
-        <div className="flex justify-center py-16">
-          <Spinner className="size-8" />
-        </div>
-      )}
+      {isPending && <ListSkeleton rows={6} />}
 
-      {isError && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-10">
-            <p className="text-sm text-red-600">{error.message}</p>
-            <Button variant="secondary" size="sm" onClick={() => refetch()}>
-              {strings.common.retry}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {isError && <ErrorState message={error.message} onRetry={() => refetch()} />}
 
       {data && (
         <Card>
           <CardContent className="p-0">
             {data.length === 0 ? (
-              <p className="px-6 py-10 text-center text-sm text-slate-500">
-                {strings.reservations.empty}
-              </p>
+              <EmptyState icon={<CalendarX />} title={strings.reservations.empty} />
             ) : filtered.length === 0 ? (
-              <p className="px-6 py-10 text-center text-sm text-slate-500">
-                {strings.reservations.noMatches}
-              </p>
+              <EmptyState icon={<SearchX />} title={strings.reservations.noMatches} />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <tr className="border-b border-border text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       <th className="px-4 py-3">{strings.reservations.colTime}</th>
                       <th className="px-4 py-3">{strings.reservations.colGuest}</th>
                       <th className="px-4 py-3">{strings.reservations.colPhone}</th>
@@ -167,17 +138,17 @@ export function ReservationsPage() {
                     {sortByStartTime(filtered).map((reservation) => (
                       <tr
                         key={reservation.id}
-                        className="cursor-pointer hover:bg-slate-50"
+                        className="cursor-pointer transition-colors hover:bg-slate-50"
                         onClick={() => setSelected(reservation)}
                       >
-                        <td className="px-4 py-3 font-semibold text-slate-900">
+                        <td className="px-4 py-3 font-semibold text-foreground">
                           {formatTime(reservation.startTime)}
                           <span className="font-normal text-slate-400">
                             {' – '}
                             {formatTime(reservation.endTime)}
                           </span>
                         </td>
-                        <td className="px-4 py-3 font-medium text-slate-900">
+                        <td className="px-4 py-3 font-medium text-foreground">
                           {reservation.guestName}
                         </td>
                         <td className="px-4 py-3 text-slate-600">

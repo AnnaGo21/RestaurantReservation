@@ -7,3 +7,48 @@ SMS_MOCK_MODE=false
 TWILIO_ACCOUNT_SID=xxx
 TWILIO_AUTH_TOKEN=xxx
 TWILIO_FROM_NUMBER=+xxx
+
+**Test credentials after seeding:
+| Role | Email | Password |
+|---|---|---|
+| OWNER | owner@demo.com | password123 |
+| MANAGER | manager@demo.com | password123 |
+| STAFF | staff@demo.com | password123 |
+
+90e0de9d-7be4-41af-9bb9-648f79f40cfa.jsonl
+
+-------------------------------------------------------
+At the beginning of every later session
+
+Do not say “analyze the entire project.”
+
+Use:
+
+Read the loaded project instructions and docs/PROJECT_STATE.md.
+
+Work only on the Tables phase.
+
+Inspect only the existing Tables files, directly reused shared components,
+relevant API contracts and backend table endpoints.
+
+Do not broadly rescan the repository unless the saved project documentation
+is demonstrably incomplete or outdated.
+
+Replace Tables with Guests, Analytics, Settings, Dashboard, etc.
+
+
+------------------------------------------------------------------------
+At the end of every phase
+
+Tell Claude:
+
+Update only the affected sections of docs/PROJECT_STATE.md with:
+
+- What is now complete
+- Important implementation decisions
+- Real backend limitations discovered
+- Live verification status
+- Exact next phase
+
+Do not rewrite the whole document.
+Do not add temporary implementation details that future sessions will not need.

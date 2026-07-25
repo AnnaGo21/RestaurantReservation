@@ -5,9 +5,10 @@ export function Select({ className, ...props }: ComponentProps<'select'>) {
   return (
     <select
       className={cn(
-        'h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900',
-        'focus:border-brand-500 focus:outline-2 focus:outline-offset-0 focus:outline-brand-500/30',
-        'disabled:cursor-not-allowed disabled:bg-slate-100',
+        'select-chevron h-10 appearance-none rounded-md border border-input bg-card pl-3 pr-9 text-sm text-foreground shadow-xs',
+        'transition-[border-color,box-shadow]',
+        'focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25',
+        'disabled:cursor-not-allowed disabled:bg-muted disabled:opacity-70',
         className,
       )}
       {...props}

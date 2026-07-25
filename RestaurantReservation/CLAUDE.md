@@ -1,151 +1,98 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository. Two nested `CLAUDE.md`
+files hold the per-tier detail — this file stays project-wide.
 
-## Project Purpose
+## Product
 
-Internal SaaS tool for Georgian restaurants to manage reservations digitally — replacing notebooks, WhatsApp, and Excel. Subscription model (50–400+ GEL/month). Focus on daily operational use, not a public booking marketplace.
+Internal SaaS for Georgian restaurants to manage reservations digitally
+(replaces notebooks, WhatsApp, Excel). Subscription model, 50–400+ GEL/month.
+Operational tool for staff, **not** a public booking marketplace.
+
+## Repository layout
+
+```
+src/main/java/org/example/reservations/   Spring Boot backend (see nested CLAUDE.md)
+src/main/resources/db/migration/          Flyway migrations (V{N}__description.sql)
+src/test/java/...                         JUnit + Spring tests
+frontend/                                 React 19 + Vite 8 SPA (see frontend/CLAUDE.md)
+docs/PROJECT_STATE.md                     Current feature status and open gaps
+.claude/rules/                            Path-scoped rules loaded per file
+pom.xml, docker-compose.yml               Backend build + local Postgres
+```
+
+Backend serves under `/api/**` on port 8080; frontend dev server proxies `/api`
+to it (see `frontend/vite.config.ts`).
 
 ## Commands
 
-### Build & Run
+Backend (repo root):
+
 ```bash
-mvn clean install          # Build and run all tests
-mvn spring-boot:run        # Start dev server on port 8080
+mvn spring-boot:run                                # dev server on :8080
+mvn clean install                                  # full build + tests
+mvn test                                           # all tests
+mvn test -Dtest=ReservationServiceTest             # single class
+mvn test -Dtest=ReservationServiceTest#methodName  # single method
 ```
 
-### Tests
-```bash
-mvn test                                       # Run all tests
-mvn test -Dtest=ReservationServiceTest         # Single test class
-mvn test -Dtest=ReservationServiceTest#testX   # Single test method
+Frontend (`frontend/`, PowerShell — `npm`'s `.ps1` shim is blocked, use `npm.cmd`):
+
+```powershell
+npm.cmd run dev      # Vite dev server (proxies /api to :8080)
+npm.cmd run build    # tsc -b && vite build (typecheck + prod bundle)
+npm.cmd run lint     # oxlint
 ```
 
-### Database
-Flyway runs migrations automatically on startup. Migrations live in `src/main/resources/db/migration/`. Name new files `V{N}__description.sql`.
+Database: Flyway auto-runs on backend startup. Postgres via `docker-compose up -d`.
+Seed data in `V2__seed_dev_data.sql`; test credentials in `Hints.txt`.
 
-### Environment Variables
-```
-JWT_SECRET          # HMAC secret for JWT signing
-TWILIO_ACCOUNT_SID  # Optional in mock mode
-TWILIO_AUTH_TOKEN
-TWILIO_FROM_NUMBER
-```
+## Stack (do not change without discussion)
 
-SMS runs in mock mode (logs only) by default in development.
+- Backend: Java 21, Spring Boot 3.3.13, Spring Security, JPA/Hibernate,
+  PostgreSQL 42.7.7, Flyway, JJWT 0.12.6, Twilio SDK 10.4.1, Lombok 1.18.38,
+  springdoc-openapi 2.6.0.
+- Frontend: React 19, TypeScript, Vite 8, Tailwind 4, TanStack Query 5,
+  react-router 7, axios, lucide-react. No shadcn CLI — hand-rolled primitives
+  in `frontend/src/components/ui/`.
+- Build note: JDK 25 works because Lombok is pinned to 1.18.38 as an annotation
+  processor (`pom.xml`). Older Lombok fails on JDK 23+.
 
-### Build environment
-- Java 21 source/target, but the project builds cleanly on JDK 25.
-- Lombok is pinned to `1.18.38` in `pom.xml` and wired as an annotation processor on `maven-compiler-plugin` — older Lombok versions fail on JDK 23+ with `TypeTag :: UNKNOWN`.
-- Spring Boot parent: `3.3.13`.
+## Cross-cutting invariants
 
-## Architecture
+- **Backend is the single source of truth.** Never invent endpoints, DTO fields,
+  RBAC rules, statuses, metrics, or business logic. Read the actual controller /
+  service / DTO before assuming shape.
+- **Multi-tenancy.** `restaurantId` comes from `SecurityUtils.currentRestaurantId()`,
+  never from a request param or body. Every entity load by id must ownership-check.
+- **Auth.** Stateless JWT. Roles: `OWNER > MANAGER > STAFF`. RBAC rules live in
+  `SecurityConfig`. `JwtAuthenticationFilter` never throws — malformed tokens
+  fall through to the security chain and return 401.
+- **Reservation lifecycle & SMS pipeline** are documented in the backend
+  `CLAUDE.md`. Do not duplicate here.
 
-Layered Spring Boot monolith. Packages under `org.example.reservations`:
+## Workflow
 
-```
-auth/          JWT auth filter, JwtService, CustomUserDetailsService, SecurityUtils
-config/        SecurityConfig — RBAC rules and filter chain
-analytics/     Trend/stats endpoints (peak hours, busiest days, no-show rates)
-calendar/      Daily and weekly table-reservation view
-dashboard/     Real-time restaurant overview (occupied tables, today's bookings)
-guest/         Guest CRUD; phone-based deduplication per restaurant
-notification/  Twilio SMS service + 30-minute reminder scheduler + AFTER_COMMIT listener
-reservation/   Core booking logic, conflict detection, status lifecycle, walk-in/move/check-in
-restaurant/    Restaurant CRUD and configuration (grace period, slot duration)
-table/         Table CRUD and status management
-user/          User management, role enforcement, profile/password updates
-exception/     GlobalExceptionHandler → 400/403/404/409/500 responses
-```
+1. Before touching a feature, read `docs/PROJECT_STATE.md` for current status
+   and the relevant nested `CLAUDE.md` for conventions.
+2. Modify **only** files the current task requires. Do not refactor unrelated
+   code, rename symbols, or "clean up" as a side effect.
+3. Preserve working functionality. If a change forces an API/DTO update,
+   update entity + DTO + mapper together (backend) or the API client + types
+   together (frontend).
+4. Do not add npm or Maven dependencies without asking.
+5. Verify: backend `mvn test`; frontend `npm.cmd run build; npm.cmd run lint`.
+   State explicitly when a change is compile-verified only vs. exercised in a
+   browser/live backend.
+6. Final report: files changed, verification performed, next smallest step.
+   Keep it terse — no restating architecture, no unchanged-file summaries.
 
-### Security & Multi-Tenancy
+## What lives elsewhere
 
-JWT is stateless. On login the token carries three claims: `sub` (email), `role`, and `restaurantId`. The filter (`JwtAuthenticationFilter`) extracts all three, builds the `Authentication`, and stores `restaurantId` on `authentication.setDetails(...)`.
-
-**Never trust `restaurantId` from a request param or body.** Always read it via `SecurityUtils.currentRestaurantId()`. Controllers must not expose `restaurantId` as a `@RequestParam`. Services must ownership-check any entity loaded by id (`entity.getRestaurant().getId().equals(SecurityUtils.currentRestaurantId())` — throw `AccessDeniedException` otherwise).
-
-Role hierarchy: `OWNER > MANAGER > STAFF`. Access matrix from `SecurityConfig`:
-
-| Path | Roles |
-|------|-------|
-| `/api/auth/**`, `GET /api/restaurants`, `POST /api/restaurants` | Public |
-| `/api/restaurants/**` | OWNER |
-| `/api/tables/**` | OWNER, MANAGER |
-| `/api/reservations/**`, `/api/guests/**` | OWNER, MANAGER, STAFF |
-| `/api/dashboard/**`, `/api/analytics/**` | OWNER, MANAGER |
-
-`JwtAuthenticationFilter` swallows malformed/expired tokens and lets the security chain return 401 — do not throw from the filter.
-
-### Reservation Lifecycle
-
-Statuses: `PENDING`, `CONFIRMED`, `SEATED`, `COMPLETED`, `CANCELLED`, `NO_SHOW`.
-
-Allowed transitions (defined on `ReservationStatus.canTransitionTo`):
-- `PENDING   → CONFIRMED | CANCELLED`
-- `CONFIRMED → SEATED | COMPLETED | NO_SHOW | CANCELLED`
-- `SEATED    → COMPLETED | CANCELLED`
-- Terminal: `COMPLETED`, `CANCELLED`, `NO_SHOW`.
-
-All status mutators (`updateReservationStatus`, `cancelReservation`, `checkIn`) are **idempotent**: re-applying the same status returns the existing DTO without touching guest counters. Invalid transitions throw `IllegalStateException` (→ HTTP 409).
-
-### Core flow — `ReservationService.createReservation()`
-
-1. `restaurantId` is read from `SecurityUtils.currentRestaurantId()`, **not** the request.
-2. Table is loaded via `tableRepository.findByIdForUpdate(...)` — a `PESSIMISTIC_WRITE` lock that serializes concurrent creates per table. Different tables remain parallel.
-3. Ownership check: table must belong to caller's restaurant; party size ≤ capacity.
-4. `endTime = startTime + restaurant.defaultReservationMinutes` (default 90).
-5. `findConflicts()` checks overlap, ignoring `CANCELLED`, `NO_SHOW`, `COMPLETED`.
-6. Guest is looked up by `(restaurantId, phone)` or created.
-7. Reservation is saved with status `CONFIRMED`.
-8. **`ReservationConfirmedEvent` is published — SMS is sent asynchronously after commit (see "SMS pipeline" below). Do not call `SmsService` directly from a transactional method.**
-
-### Walk-in / move / check-in
-
-- `POST /api/reservations/walk-in` — creates a reservation starting now, immediately `SEATED` with `checkedInAt` set. Phone is optional; when blank, a synthetic `walkin-{uuid}` is stored so anonymous walk-ins don't merge into a single guest row.
-- `PATCH /api/reservations/{id}/move` — body `{ tableId?, startTime? }`. Rejects terminal states. Locks the new table and runs `findConflictsExcluding(...)` so the reservation being moved doesn't conflict with itself.
-- `PATCH /api/reservations/{id}/check-in` — sets `status=SEATED` and `checkedInAt=now()`. Idempotent.
-
-All three use the same lock + capacity check as `createReservation`.
-
-### SMS pipeline
-
-`ReservationService.createReservation()` publishes `ReservationConfirmedEvent`. `ReservationSmsListener` handles it with `@TransactionalEventListener(AFTER_COMMIT) @Async` — Twilio latency cannot hold a DB transaction open, and Twilio failure cannot roll back a valid reservation. `@EnableAsync` is set on `RestaurantReservationApplication`.
-
-Walk-ins skip the event (the guest is already at the table).
-
-### Dashboard data shape
-
-`DashboardDto`:
-- `todayReservations` — every reservation today regardless of status (full picture for staff).
-- `upcomingReservations` — today's reservations starting after now, excluding `CANCELLED`, `NO_SHOW`, `COMPLETED` (actionable list).
-- `occupiedTables` — tables with an active reservation whose window contains `now`.
-- `noShowPercentage` — all-time, not daily, so it's a stable health metric.
-
-### Scheduled tasks
-
-- `NoShowScheduler` — every 5 minutes. Marks `CONFIRMED` reservations as `NO_SHOW` once `startTime + gracePeriodMinutes` has passed. Skips rows whose status can no longer transition to `NO_SHOW`.
-- `SmsReminderScheduler` — every 30 minutes. Sends reminders for `CONFIRMED` reservations starting in 1–24 hours with `reminderSent = false`. The 1-hour floor lets the guest still act; the flag prevents duplicates.
-
-Both require `@EnableScheduling` on the application class.
-
-### Mappers
-
-Each domain package has a `*Mapper` that converts JPA entities → DTOs. Mappers are simple static-style converters — **never expose `passwordHash`**. Add new fields to the entity, the DTO, and the mapper together.
-
-### Database Migrations
-
-`V1` creates the full schema with indexes and constraints. Critical indexes for performance:
-- `reservations(restaurant_id, start_time)` — date-range queries
-- `reservations(restaurant_table_id, start_time, end_time)` — conflict detection
-- `guests(restaurant_id, phone)` — UNIQUE, enforces per-restaurant deduplication
-
-### Error mapping (`GlobalExceptionHandler`)
-
-| Exception | Status |
-|---|---|
-| `ResourceNotFoundException` | 404 |
-| `MethodArgumentNotValidException` | 400 |
-| `TableUnavailableException` | 409 |
-| `IllegalStateException` (invalid status transitions) | 409 |
-| `AccessDeniedException` (tenant violation) | 403 |
-| anything else | 500 (generic body — no exception detail leaked) |
+- Endpoint list, package-level rules, tenant/reservation invariants → backend
+  `CLAUDE.md` (`src/main/java/org/example/reservations/CLAUDE.md`).
+- Frontend conventions, React Query keys, shared component locations →
+  `frontend/CLAUDE.md`.
+- Current phase, done/pending pages, live-verification gaps →
+  `docs/PROJECT_STATE.md`.
+- Path-scoped coding rules → `.claude/rules/`.

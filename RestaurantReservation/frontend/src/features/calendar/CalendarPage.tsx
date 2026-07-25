@@ -1,13 +1,17 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
+import { CalendarDays } from 'lucide-react'
+import { DateNav } from '@/components/shared/DateNav'
+import { EmptyState } from '@/components/shared/EmptyState'
+import { ErrorState } from '@/components/shared/ErrorState'
+import { ListSkeleton } from '@/components/shared/ListSkeleton'
+import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
-import { Spinner } from '@/components/ui/spinner'
 import { MoveReservationModal } from '@/features/reservations/MoveReservationModal'
 import { ReservationDetail } from '@/features/reservations/ReservationDetail'
 import { useDailyReservations } from '@/features/reservations/use-reservations'
 import { useTables } from '@/features/tables/use-tables'
-import { formatDateLabel, formatTime, shiftIsoDate, todayIsoDate } from '@/lib/datetime'
+import { formatTime, todayIsoDate } from '@/lib/datetime'
 import { strings } from '@/lib/strings'
 import { cn } from '@/lib/utils'
 import type { Reservation, ReservationStatus } from '@/types/reservation'
@@ -58,58 +62,20 @@ export function CalendarPage() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-slate-900">{strings.nav.calendar}</h1>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            aria-label={strings.common.previousDay}
-            onClick={() => setDate(shiftIsoDate(date, -1))}
-          >
-            ‹
-          </Button>
-          <span className="min-w-40 text-center text-sm font-medium text-slate-700">
-            {formatDateLabel(date)}
-          </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            aria-label={strings.common.nextDay}
-            onClick={() => setDate(shiftIsoDate(date, 1))}
-          >
-            ›
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => setDate(todayIsoDate())}>
-            {strings.common.today}
-          </Button>
-        </div>
-      </div>
+      <PageHeader
+        title={strings.nav.calendar}
+        actions={<DateNav date={date} onChange={setDate} />}
+      />
 
-      {isPending && (
-        <div className="flex justify-center py-16">
-          <Spinner className="size-8" />
-        </div>
-      )}
+      {isPending && <ListSkeleton rows={6} />}
 
-      {isError && (
-        <Card>
-          <CardContent className="flex flex-col items-center gap-3 py-10">
-            <p className="text-sm text-red-600">{error.message}</p>
-            <Button variant="secondary" size="sm" onClick={() => refetch()}>
-              {strings.common.retry}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      {isError && <ErrorState message={error.message} onRetry={() => refetch()} />}
 
       {data && (
         <Card>
           <CardContent className="p-0">
             {rows.length === 0 ? (
-              <p className="px-6 py-10 text-center text-sm text-slate-500">
-                {strings.calendar.empty}
-              </p>
+              <EmptyState icon={<CalendarDays />} title={strings.calendar.empty} />
             ) : (
               <div className="overflow-x-auto">
                 <div style={{ minWidth: LABEL_WIDTH + hours.length * HOUR_WIDTH }}>

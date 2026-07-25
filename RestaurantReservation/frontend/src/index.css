@@ -12,6 +12,54 @@
   --color-brand-800: #115e59;
   --color-brand-900: #134e4a;
   --color-brand-950: #042f2e;
+
+  /* Semantic tokens (shadcn-style) */
+  --color-background: #f8f9fb;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-border: #e2e8f0;
+  --color-input: #cbd5e1;
+  --color-primary: #0d9488;
+  --color-primary-foreground: #ffffff;
+  --color-accent: #f0fdfa;
+  --color-ring: #14b8a6;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #ffffff;
+
+  --animate-overlay-in: overlay-in 0.15s ease-out;
+  --animate-dialog-in: dialog-in 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-toast-in: toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+
+  @keyframes overlay-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97) translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 @layer base {
@@ -20,6 +68,14 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-900;
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .select-chevron {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.625rem center;
+    background-repeat: no-repeat;
   }
 }
