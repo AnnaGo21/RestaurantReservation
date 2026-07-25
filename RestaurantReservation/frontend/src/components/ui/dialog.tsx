@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
+import { X } from 'lucide-react'
 import { strings } from '@/lib/strings'
 
 interface DialogProps {
@@ -6,9 +7,10 @@ interface DialogProps {
   onClose: () => void
   title: string
   children: ReactNode
+  footer?: ReactNode
 }
 
-export function Dialog({ open, onClose, title, children }: DialogProps) {
+export function Dialog({ open, onClose, title, children, footer }: DialogProps) {
   useEffect(() => {
     if (!open) {
       return
@@ -28,27 +30,32 @@ export function Dialog({ open, onClose, title, children }: DialogProps) {
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-slate-900/50" onClick={onClose} aria-hidden="true" />
+      <div
+        className="animate-overlay-in fixed inset-0 bg-slate-950/40"
+        onClick={onClose}
+        aria-hidden="true"
+      />
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative z-50 flex max-h-full w-full max-w-md flex-col rounded-lg bg-white shadow-xl"
+        className="animate-dialog-in relative z-50 flex max-h-full w-full max-w-md flex-col rounded-xl border border-border bg-card shadow-lg"
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+        <div className="flex items-center justify-between gap-3 border-b border-border px-6 py-4">
+          <h2 className="text-base font-semibold text-foreground">{title}</h2>
           <button
             type="button"
             onClick={onClose}
             aria-label={strings.a11y.closeDialog}
-            className="rounded-md p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+            className="-mr-1.5 rounded-md p-1.5 text-slate-400 transition-colors hover:bg-muted hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
           >
-            <svg className="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" d="M6 6l12 12M18 6L6 18" />
-            </svg>
+            <X className="size-4" />
           </button>
         </div>
         <div className="overflow-y-auto px-6 py-4">{children}</div>
+        {footer && (
+          <div className="flex justify-end gap-3 border-t border-border px-6 py-4">{footer}</div>
+        )}
       </div>
     </div>
   )
