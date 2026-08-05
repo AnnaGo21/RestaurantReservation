@@ -175,6 +175,7 @@ export const strings = {
     trendDaily: 'Day',
     trendWeekly: 'Week',
     trendMonthly: 'Month',
+    trendEmpty: 'No reservation activity for this period.',
     emptyTitle: 'No data in the selected range.',
     emptySection: 'Nothing to show for this period.',
     weekday: {
