@@ -168,7 +168,7 @@ function AnalyticsLayout({ data }: { data: AnalyticsResponse }) {
           <TrendToggle value={trend} onChange={setTrend} />
         </CardHeader>
         <CardContent className="p-0">
-          <TrendList map={trendMap} isEmpty={isEmpty} />
+          <TrendSection map={trendMap} trend={trend} />
         </CardContent>
       </Card>
     </div>
@@ -236,16 +236,60 @@ function BusiestDaysList({ map, isEmpty }: { map: Record<string, number>; isEmpt
   )
 }
 
-function TrendList({ map, isEmpty }: { map: Record<string, number>; isEmpty: boolean }) {
+function TrendSection({ map, trend }: { map: Record<string, number>; trend: TrendKey }) {
   const entries = useMemo(() => {
     return Object.entries(map)
-      .map(([key, count]) => ({ key, label: key, count }))
+      .filter(([, count]) => count > 0)
+      .map(([key, count]) => ({ key, label: formatTrendLabel(key, trend), count }))
       .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
-  }, [map])
+  }, [map, trend])
+
+  if (entries.length === 0) {
+    return <EmptyState icon={<BarChart3 />} title={strings.analytics.trendEmpty} className="py-10" />
+  }
+
+  return <TrendChart entries={entries} />
+}
+
+function TrendChart({ entries }: { entries: BarEntry[] }) {
+  const max = entries.reduce((m, entry) => Math.max(m, entry.count), 0)
 
   return (
-    <div className="max-h-96 overflow-y-auto">
-      <BarList entries={entries} isEmpty={isEmpty || entries.length === 0} icon={<BarChart3 />} />
+    <div className="overflow-x-auto px-6 py-6">
+      <div
+        role="list"
+        aria-label={strings.analytics.trendsTitle}
+        className="flex items-end gap-3"
+      >
+        {entries.map((entry) => {
+          const heightPct = max > 0 ? (entry.count / max) * 100 : 0
+          return (
+            <div
+              key={entry.key}
+              role="listitem"
+              className="flex w-14 shrink-0 flex-col items-center gap-2"
+            >
+              <span
+                className="text-xs font-semibold text-foreground tabular-nums"
+                aria-hidden="true"
+              >
+                {entry.count}
+              </span>
+              <div className="flex h-40 w-full items-end rounded-sm bg-slate-50">
+                <div
+                  className="w-full rounded-t bg-brand-600"
+                  style={{ height: `${heightPct}%`, minHeight: entry.count > 0 ? 4 : 0 }}
+                  role="img"
+                  aria-label={`${entry.label}: ${entry.count}`}
+                />
+              </div>
+              <span className="w-full text-center text-xs leading-tight text-muted-foreground break-words">
+                {entry.label}
+              </span>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -338,6 +382,36 @@ function trendMapFor(data: AnalyticsResponse, key: TrendKey): Record<string, num
   if (key === 'daily') return data.dailyTrends
   if (key === 'weekly') return data.weeklyTrends
   return data.monthlyTrends
+}
+
+// Daily key: "YYYY-MM-DD" → "Jul 19".
+// Weekly key: "YYYY-Www" → "Week 30, 2026" (raw week label kept — the backend
+//   computes weeks with `WeekFields.of(Locale.getDefault())`, which is
+//   server-locale-dependent, so a client-side date range would risk drift).
+// Monthly key: "YYYY-MM" → "July 2026".
+// Any parse failure falls back to the raw key.
+function formatTrendLabel(key: string, trend: TrendKey): string {
+  if (trend === 'daily') {
+    const parts = key.split('-').map(Number)
+    if (parts.length !== 3 || parts.some(Number.isNaN)) return key
+    const [year, month, day] = parts
+    return new Date(year, month - 1, day).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+    })
+  }
+  if (trend === 'weekly') {
+    const match = /^(\d{4})-W(\d{1,2})$/.exec(key)
+    if (!match) return key
+    return `Week ${Number(match[2])}, ${match[1]}`
+  }
+  const parts = key.split('-').map(Number)
+  if (parts.length !== 2 || parts.some(Number.isNaN)) return key
+  const [year, month] = parts
+  return new Date(year, month - 1, 1).toLocaleDateString('en-GB', {
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
 function toIsoDate(date: Date): string {

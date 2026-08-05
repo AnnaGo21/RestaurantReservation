@@ -1,32 +1,56 @@
 # PROJECT_STATE.md
 
-Snapshot of feature status as of 2026-07-25. Update the affected sections at
+Snapshot of feature status as of 2026-07-27. Update the affected sections at
 the end of each phase — do not rewrite the whole document.
 
 ## Completed pages (frontend)
 
-Compile-verified with `npm.cmd run build; npm.cmd run lint`. **Nothing has
-been exercised against a running backend / Postgres** — see "Live gaps" below.
+All pages below are compile-verified with `npm.cmd run build; npm.cmd run lint`.
+Live-browser status is called out per page — see "Live gaps" for exactly what
+was and was not exercised.
 
 - **Login** (`features/auth/LoginPage.tsx`) — email + password, JWT stored in
-  `localStorage`, redirects via `HomeRedirect`.
+  `localStorage`, redirects via `HomeRedirect`. Opened in a browser against
+  the running backend.
 - **AppShell + Sidebar + Topbar** (`components/layout/`) — responsive
-  desktop / landscape-tablet layout, role-aware nav items.
+  desktop / landscape-tablet layout, role-aware nav items. Rendered against
+  the running backend.
 - **Dashboard** (`features/dashboard/`) — KPIs (todayReservations,
   upcoming, occupied tables, no-show %), 60 s polling. OWNER/MANAGER only.
+  Opened in a browser against the running backend.
 - **Tables** (`features/tables/`) — full CRUD, floor view that scales boxes
-  with capacity (positions optional). OWNER/MANAGER only.
+  with capacity (positions optional). OWNER/MANAGER only. Opened in a
+  browser against the running backend; individual mutations not each
+  systematically exercised.
 - **Reservations** (`features/reservations/`) — daily list with
   `?date=&status=&q=` URL state, detail modal, create modal with
   availability chips, status actions (check-in / complete / no-show /
-  cancel mapped to backend transitions), move/reschedule modal.
-- **Calendar** (`features/calendar/`) — daily table-vs-time grid.
+  cancel mapped to backend transitions), move/reschedule modal. Page
+  opened in a browser against the running backend; mutation and
+  conflict/error paths (create → 409, move, check-in, cancel, no-show)
+  not yet exercised end-to-end.
+- **Calendar** (`features/calendar/`) — daily table-vs-time grid. Opened
+  in a browser against the running backend.
+- **Analytics** (`features/analytics/`) — date-range picker (defaults to
+  last 30 days), 5 KPI cards (totalReservations, completedReservations,
+  cancelledReservations, noShows with `noShowPercentage` hint,
+  averagePartySize), peak-hours ranked bar list (`HH:00` labels, sorted
+  by count desc), busiest-days ranked bar list (fixed Mon–Sun order,
+  count desc within populated weekdays), and a trends card with a
+  Day/Week/Month segmented toggle bound to `dailyTrends` /
+  `weeklyTrends` / `monthlyTrends`. Bar widths computed as
+  `count / max(counts)` with a zero-guard; exact counts rendered
+  beside every bar with `aria-label`. OWNER/MANAGER only. API-verified
+  live for OWNER (200) / MANAGER (200) / STAFF (403) / anonymous (403);
+  real payload shape matches `AnalyticsResponse`. UI opened in a browser
+  against the running backend; every backend-returned metric renders and
+  the empty-range path returns all-zero KPIs + `EmptyState` per section
+  without divide-by-zero.
 
 ## Placeholder pages (still incomplete)
 
 Each renders `<PagePlaceholder />` only; route + nav entry are wired.
 
-- Analytics (`features/analytics/AnalyticsPage.tsx`)
 - Guests (`features/guests/GuestsPage.tsx`)
 - Settings (`features/settings/SettingsPage.tsx`)
 
@@ -51,18 +75,46 @@ Each renders `<PagePlaceholder />` only; route + nav entry are wired.
 - **`GET /api/tables` is OWNER/MANAGER-only.** STAFF UI catches 403 and
   falls back to `#{tableId}` labels. Consider opening for STAFF later.
 - **Reservation listing is day-scoped only.** No range/search endpoint yet.
+- **`/api/analytics` missing `start` or `end` → HTTP 500.**
+  `MissingServletRequestParameterException` is not mapped in
+  `GlobalExceptionHandler`. Frontend never triggers this (both inputs
+  default to a valid ISO date on mount), but the endpoint should be
+  fixed alongside the bad-login handler.
+- **`/api/analytics` with `start > end` → HTTP 200** with all-empty maps
+  (no server-side validation). Frontend guards this client-side with
+  `enabled: start <= end` on the query plus an inline warning.
+- **`/api/analytics` is timezone-naive.** `start.atStartOfDay()` and
+  `end.atTime(MAX)` are treated as server-local, so a client in a
+  different tz can see off-by-one-day drift at the range boundary.
+- **`AnalyticsResponse` is aggregate-only.** No revenue, occupancy-rate,
+  guest-retention, or period-over-period comparison data — the frontend
+  cannot render metrics the backend does not expose.
 
 ## Live / runtime gaps
 
-- No page has been opened in a browser against a running backend and
-  Postgres. First live run should validate:
-  1. Login (all three seeded roles).
-  2. Reservation create → 409 conflict path.
-  3. Dashboard KPIs populate.
-  4. Move + check-in idempotency.
-- SMS runs in mock mode (`SMS_MOCK_MODE=true`) by default — Twilio has
-  never been exercised for real.
-- Bad-login 500 handling not yet observed live.
+Live-browser status per page — "opened" means the page rendered against
+the running backend and no runtime crash was observed. It does **not**
+mean every workflow, mutation, or error branch on the page has been
+exercised.
+
+- **Opened in a browser against running backend + Postgres:** Login,
+  Dashboard, Reservations (list/detail views only), Calendar, Tables
+  (list/floor views only), Analytics.
+- **Analytics — API-level checks also performed:** OWNER/MANAGER 200,
+  STAFF/anonymous 403; real payload matches `AnalyticsResponse`; empty
+  range returns all-zero maps and renders `EmptyState` per section.
+- **Reservation mutations and error paths still pending live
+  verification:** create → 409 conflict, move/reschedule, check-in,
+  cancel, mark no-show, status-transition 409s.
+- **Tables mutations still pending live verification:** create, edit,
+  delete, position drag, status change.
+- **Login negative path still pending:** bad-password 500 (unmapped
+  `BadCredentialsException`) not yet observed live.
+- **Auth expiry path still pending:** 401 → `setOnUnauthorized` clearing
+  storage and routing to `/login` not yet observed live.
+- **SMS runs in mock mode** (`SMS_MOCK_MODE=true`) by default — Twilio
+  has never been exercised for real; the reminder + no-show schedulers
+  have not been observed firing against real data.
 
 ## Design-system decisions currently locked
 
@@ -79,14 +131,15 @@ Each renders `<PagePlaceholder />` only; route + nav entry are wired.
 
 ## Current phase
 
-**Next: Analytics page.** Wire the existing `/api/analytics/**` endpoints
-(peak hours, busiest days, no-show rate) into `AnalyticsPage.tsx` using the
-same PageHeader + Card + KpiCard patterns already in Dashboard. Do not
-introduce a chart library — start with numeric summaries and simple bar
-lists built from Tailwind.
+**Next: Guests page.** Analytics is done (compile-verified + browser-opened
+against the running backend, with API-level RBAC and payload checks). The
+`AnalyticsPage.tsx` implementation lives at `features/analytics/` alongside
+`use-analytics.ts`; the shared type is `types/analytics.ts` and the HTTP
+wrapper is `api/analytics.ts`. Strings live under `strings.analytics.*`.
 
-Sequence after Analytics: Guests, then Settings. Only after those:
-first live end-to-end browser test with a running backend.
+Sequence after Guests: Settings. In parallel, work through the pending
+mutation/error paths listed in "Live / runtime gaps" so the
+already-opened pages graduate from "rendered live" to "exercised live".
 
 ## Decisions future sessions must preserve
 
