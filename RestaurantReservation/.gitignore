@@ -53,3 +53,10 @@ Thumbs.db
 
 ### Temporary ###
 nul
+
+### Local-only notes / tooling — never publish ###
+CLAUDE.md
+.claude/
+.idea/claudeCodeEditorTabs.xml
+Hints.txt
+docs/PROJECT_STATE.md
