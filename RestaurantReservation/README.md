@@ -8,6 +8,8 @@ This is an **internal operational tool** for restaurants to manage reservations 
 
 **Goal:** faster than notebooks, simpler than POS systems, easier than Excel.
 
+The system ships as two pieces: a **Spring Boot backend** exposing a JSON API under `/api`, and a **React SPA** in `frontend/` that consumes it. Both live in the same repository. The frontend proxies `/api/**` to the backend during development.
+
 ---
 
 ## Features
@@ -21,11 +23,13 @@ This is an **internal operational tool** for restaurants to manage reservations 
 - SMS confirmation + 24h reminder via Twilio (mock mode for development). Confirmation SMS is sent **after** the DB commit on a separate thread.
 - Dashboard, daily/weekly calendar, peak-hours / busiest-days / no-show analytics.
 - Guest history with phone-based deduplication per restaurant.
+- React SPA covering login, dashboard, tables (list + floor view), reservations (list, create, move, status actions), calendar, and analytics (KPIs, peak hours, busiest days, day/week/month reservation trends).
 
 ---
 
 ## Tech Stack
 
+**Backend**
 - Java 21 (builds on JDK 21–25)
 - Spring Boot 3.3.13
 - Spring Security + JWT (`jjwt 0.12.6`)
@@ -36,6 +40,14 @@ This is an **internal operational tool** for restaurants to manage reservations 
 - Lombok 1.18.38 (pinned + wired as an annotation processor for JDK 25 compatibility)
 - Maven
 
+**Frontend**
+- React 19 + TypeScript
+- Vite 8 (dev server proxies `/api` → `:8080`)
+- Tailwind 4 (`@tailwindcss/vite`)
+- TanStack Query 5, react-router 7, axios, lucide-react
+- Hand-rolled UI primitives in `frontend/src/components/ui/` — no shadcn CLI, no chart library, no `react-hook-form`, no `zod`
+- oxlint
+
 ---
 
 ## Getting Started
@@ -44,6 +56,7 @@ This is an **internal operational tool** for restaurants to manage reservations 
 - Java 21+
 - Maven 3.6+
 - PostgreSQL 16 (Docker recommended)
+- Node.js 20+ and npm (for the frontend)
 
 ### Environment variables
 
@@ -64,13 +77,34 @@ TWILIO_FROM_NUMBER=
 
 ### Run
 
+Backend (repo root):
+
 ```bash
 docker-compose up -d        # start Postgres
 mvn clean install           # build + tests
 mvn spring-boot:run         # start on :8080
 ```
 
-Flyway runs migrations on startup. No manual schema setup needed.
+Flyway runs migrations on startup. No manual schema setup needed. `V2` seeds a demo restaurant, three users (one per role), tables, and today's mixed-status reservations. `V4` wipes and reseeds the reservation table with ~9 weeks of realistic historical data so the Analytics page shows meaningful shape out of the box.
+
+Frontend (`frontend/`):
+
+```bash
+npm install
+npm run dev                 # Vite dev server, proxies /api → :8080
+npm run build               # tsc -b && vite build
+npm run lint                # oxlint
+```
+
+On Windows PowerShell, `npm`'s `.ps1` shim is blocked — use `npm.cmd` instead of `npm`.
+
+### Seeded credentials
+
+| Role | Email | Password |
+|---|---|---|
+| OWNER | owner@demo.com | password123 |
+| MANAGER | manager@demo.com | password123 |
+| STAFF | staff@demo.com | password123 |
 
 ---
 
@@ -184,6 +218,18 @@ src/main/java/org/example/reservations/
 src/main/resources/
 ├── db/migration/   Flyway migrations (V1..)
 └── application.yml
+
+frontend/
+├── src/
+│   ├── api/           axios wrappers, one file per backend domain
+│   ├── components/    layout, shared (KpiCard, PageHeader, ErrorState, …), ui primitives
+│   ├── features/      one folder per page (analytics, auth, calendar, dashboard,
+│   │                  guests, reservations, settings, tables)
+│   ├── routes/        router + RequireAuth / RequireRole guards
+│   ├── lib/           datetime, roles, storage, strings, query-client, utils
+│   └── types/         domain types mirroring backend DTOs
+├── vite.config.ts     dev-server proxy for /api
+└── tailwind config    via @tailwindcss/vite
 ```
 
 ---
